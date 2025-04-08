@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MicroProfile CRUD</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="container">
+    <h1>Administración de Usuarios</h1>
+
+    <div class="form-container">
+        <h2>Agregar/Editar Usuario</h2>
+        <form id="usuarioForm">
+            <input type="hidden" id="usuarioId">
+            <div class="form-group">
+                <label for="nombre">Nombre:</label>
+                <input type="text" id="nombre" required>
+            </div>
+            <div class="form-group">
+                <label for="correo">Correo:</label>
+                <input type="email" id="correo" required>
+            </div>
+            <button type="submit" id="btnGuardar">Guardar</button>
+            <button type="button" id="btnCancelar">Cancelar</button>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <h2>Lista de Usuarios</h2>
+        <table id="usuariosTable">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.microprofile</groupId>
+  <artifactId>com.microprofile</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <packaging>war</packaging>
+
+  <properties>
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
+    <failOnMissingWebXml>false</failOnMissingWebXml>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <!-- Versiones -->
+    <openliberty.maven.version>3.5.1</openliberty.maven.version>
+    <microprofile.version>4.1</microprofile.version>
+    <jakarta.jakartaee.version>9.1.0</jakarta.jakartaee.version>
+    <h2.version>2.1.214</h2.version>
+    <eclipselink.version>3.0.0</eclipselink.version>
+  </properties>
+
+  <dependencies>
+    <!-- MicroProfile -->
+    <dependency>
+      <groupId>org.eclipse.microprofile</groupId>
+      <artifactId>microprofile</artifactId>
+      <version>${microprofile.version}</version>
+      <type>pom</type>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Jakarta EE -->
+    <dependency>
+      <groupId>jakarta.platform</groupId>
+      <artifactId>jakarta.jakartaee-api</artifactId>
+      <version>${jakarta.jakartaee.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- JPA y H2 -->
+    <dependency>
+      <groupId>org.eclipse.persistence</groupId>
+      <artifactId>eclipselink</artifactId>
+      <version>${eclipselink.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>mysql</groupId>
+      <artifactId>mysql-connector-java</artifactId>
+      <version>8.0.33</version> <!-- Usa la versión más reciente -->
+    </dependency>
+
+    <dependency>
+      <groupId>com.microsoft.sqlserver</groupId>
+      <artifactId>mssql-jdbc</artifactId>
+      <version>9.4.0.jre8</version>
+    </dependency>
+
+    <dependency>
+      <groupId>javax.persistence</groupId>
+      <artifactId>javax.persistence-api</artifactId>
+      <version>2.2</version>
+    </dependency>
+
+    <dependency>
+      <groupId>javax.transaction</groupId>
+      <artifactId>javax.transaction-api</artifactId>
+      <version>1.3</version>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <finalName>${project.artifactId}</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-war-plugin</artifactId>
+        <version>3.3.2</version>
+        <configuration>
+          <failOnMissingWebXml>false</failOnMissingWebXml>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>io.openliberty.tools</groupId>
+        <artifactId>liberty-maven-plugin</artifactId>
+        <version>${openliberty.maven.version}</version>
+        <configuration>
+          <serverName>${project.artifactId}</serverName>
+          <features>
+            <!-- Usamos las features de MicroProfile 4.1 -->
+            <acceptLicense>true</acceptLicense>
+            <feature>microProfile-4.1</feature>
+            <!-- Para JPA usamos la versión 2.2 que es compatible con Jakarta EE 9 -->
+            <feature>jpa-2.2</feature>
+            <feature>jdbc-4.2</feature>
+            <feature>cdi-2.0</feature>
+            <feature>jsonp-1.1</feature>
+          </features>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
