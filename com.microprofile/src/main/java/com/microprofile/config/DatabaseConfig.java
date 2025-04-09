@@ -14,13 +14,13 @@ public class DatabaseConfig {
 
     private static final Logger LOGGER = Logger.getLogger(DatabaseConfig.class.getName());
 
-    @ConfigProperty(name = "database.url")
+    @ConfigProperty(name = "database.url", defaultValue = "jdbc:sqlserver://microprofile.database.windows.net:1433;database=microprofile_demo;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30")
     private String url;
 
-    @ConfigProperty(name = "database.username")
+    @ConfigProperty(name = "database.username", defaultValue = "adminsql")
     private String username;
 
-    @ConfigProperty(name = "database.password")
+    @ConfigProperty(name = "database.password", defaultValue = "ferr@riGT1")
     private String password;
 
     @Produces
@@ -28,8 +28,8 @@ public class DatabaseConfig {
         Connection conn = null;
         try {
             LOGGER.info("Intentando conectar a la base de datos con URL: " + url);
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            conn = DriverManager.getConnection(url, username, password);
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            conn = DriverManager.getConnection("jdbc:sqlserver://microprofile.database.windows.net:1433;database=microprofile_demo;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30", "adminsql", "ferr@riGT1");
             LOGGER.info("Conexión a la base de datos establecida exitosamente");
             return conn;
         } catch (ClassNotFoundException e) {
@@ -41,3 +41,4 @@ public class DatabaseConfig {
         }
     }
 }
+

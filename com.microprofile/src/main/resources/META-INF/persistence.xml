@@ -2,11 +2,12 @@
     <jta-data-source>jdbc/microprofile_demo</jta-data-source>
     <properties>
         <property name="jakarta.persistence.jdbc.url"
-                  value="jdbc:mysql://microprofile.database.windows.net:1433/microprofile_demo?useSSL=true&amp;requireSSL=true&amp;serverTimezone=UTC"/>
+                  value="jdbc:sqlserver://microprofile.database.windows.net:1433;database=microprofile_demo;encrypt=true;trustServerCertificate=false;loginTimeout=30;"/>
         <property name="jakarta.persistence.jdbc.user" value="adminsql"/>
         <property name="jakarta.persistence.jdbc.password" value="ferr@riGT1"/>
-        <property name="jakarta.persistence.jdbc.driver" value="com.mysql.cj.jdbc.Driver"/>
-        <property name="hibernate.dialect" value="org.hibernate.dialect.MySQL8Dialect"/>
+        <property name="jakarta.persistence.jdbc.driver" value="com.microsoft.sqlserver.jdbc.SQLServerDriver"/>
+        <property name="hibernate.dialect" value="org.hibernate.dialect.SQLServerDialect"/>
         <property name="hibernate.hbm2ddl.auto" value="update"/>
     </properties>
 </persistence-unit>
+

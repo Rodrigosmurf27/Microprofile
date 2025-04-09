@@ -26,8 +26,8 @@
     <logging traceSpecification="com.microprofile.*=info" />
 
     <!-- Biblioteca del driver MySQL -->
-    <library id="MySQLLib">
-        <fileset dir="${server.config.dir}/lib" includes="mysql-connector-java-*.jar" />
+    <library id="SQLServerLib">
+        <fileset dir="${server.config.dir}/lib" includes="mssql-jdbc-*.jar" />
     </library>
 
     <!-- Configuración para monitoreo y métricas -->
