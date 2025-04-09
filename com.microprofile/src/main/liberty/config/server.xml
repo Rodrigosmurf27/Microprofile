@@ -1,25 +1,36 @@
-<server description="MicroProfile server">
+<?xml version="1.0" encoding="UTF-8"?>
+<server description="MicroProfile Server">
+    <!-- Habilitar solo la característica principal de MicroProfile -->
     <featureManager>
-        <feature>microProfile-4.1</feature>
-        <feature>jpa-2.2</feature>
+        <feature>microProfile-5.0</feature>
+
         <feature>jdbc-4.2</feature>
-        <feature>jndi-1.0</feature>
+
+
     </featureManager>
 
-    <httpEndpoint id="defaultHttpEndpoint"
-                  host="*"
-                  httpPort="9080"
-                  httpsPort="9443" />
+    <!-- Configuración del servidor HTTP -->
+    <httpEndpoint id="defaultHttpEndpoint" host="*" httpPort="9080" httpsPort="9443" />
 
-    <dataSource id="h2ds" jndiName="jdbc/h2mem">
-        <jdbcDriver libraryRef="H2Lib"/>
-        <properties
-                URL="jdbc:h2:mem:testdb"
-                user="sa"
-                password=""/>
-    </dataSource>
+    <!-- Configuración de seguridad básica -->
+    <basicRegistry id="basic" realm="MicroProfileRealm">
+        <user name="admin" password="admin123" />
+    </basicRegistry>
 
-    <library id="H2Lib">
-        <fileset dir="${shared.resource.dir}" includes="h2-*.jar"/>
+    <!-- Configuración de la aplicación Web -->
+    <webApplication id="com.microprofile" location="com.microprofile.war" contextRoot="/com.microprofile">
+        <classloader apiTypeVisibility="+third-party" />
+    </webApplication>
+
+    <!-- Configuración de logs -->
+    <logging traceSpecification="com.microprofile.*=info" />
+
+    <!-- Biblioteca del driver MySQL -->
+    <library id="MySQLLib">
+        <fileset dir="${server.config.dir}/lib" includes="mysql-connector-java-*.jar" />
     </library>
+
+    <!-- Configuración para monitoreo y métricas -->
+    <mpMetrics authentication="false" />
+    <mpOpenAPI />
 </server>

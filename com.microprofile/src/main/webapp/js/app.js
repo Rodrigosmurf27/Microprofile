@@ -1,125 +1,295 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('usuarioForm');
-    const tableBody = document.querySelector('#usuariosTable tbody');
-    const btnCancelar = document.getElementById('btnCancelar');
+// Constantes para la API
+const API_URL = '/com.microprofile/api/productos';
+const HTTP_STATUS = {
+    OK: 200,
+    CREATED: 201,
+    BAD_REQUEST: 400,
+    NOT_FOUND: 404,
+    SERVER_ERROR: 500
+};
 
-    let editMode = false;
-    let currentId = null;
+// Referencias a elementos del DOM
+const tablaProductosBody = document.querySelector('#tablaProductos tbody');
+const productoModal = document.getElementById('productoModal');
+const productoForm = document.getElementById('productoForm');
+const productoModalLabel = document.getElementById('productoModalLabel');
+const productoId = document.getElementById('productoId');
+const nombreInput = document.getElementById('nombre');
+const descripcionInput = document.getElementById('descripcion');
+const precioInput = document.getElementById('precio');
+const cantidadInput = document.getElementById('cantidad');
+const guardarProductoBtn = document.getElementById('guardarProducto');
+const confirmarEliminarModal = document.getElementById('confirmarEliminarModal');
+const confirmarEliminarBtn = document.getElementById('confirmarEliminar');
 
-    // Cargar usuarios al iniciar
-    cargarUsuarios();
+// Variable para almacenar el ID del producto a eliminar
+let productoIdAEliminar = null;
+// Variable para seguimiento de intentos de carga
+let intentosDeCarga = 0;
+const MAX_INTENTOS = 3;
 
-    // Manejar envío del formulario
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
+// Modal de Bootstrap
+const modal = new bootstrap.Modal(productoModal);
+const modalEliminar = new bootstrap.Modal(confirmarEliminarModal);
 
-        const usuario = {
-            nombre: document.getElementById('nombre').value,
-            correo: document.getElementById('correo').value
+// Cargar productos al cargar la página
+document.addEventListener('DOMContentLoaded', () => {
+    cargarProductos();
+});
+
+// Evento para guardar producto (crear o actualizar)
+guardarProductoBtn.addEventListener('click', () => {
+    if (productoForm.checkValidity()) {
+        const producto = {
+            nombre: nombreInput.value.trim(),
+            descripcion: descripcionInput.value.trim(),
+            precio: parseFloat(precioInput.value),
+            cantidad: parseInt(cantidadInput.value)
         };
 
-        if (editMode) {
-            actualizarUsuario(currentId, usuario);
+        if (productoId.value) {
+            // Actualizar producto existente
+            actualizarProducto(parseInt(productoId.value), producto);
         } else {
-            crearUsuario(usuario);
+            // Crear nuevo producto
+            crearProducto(producto);
         }
-    });
-
-    // Cancelar edición
-    btnCancelar.addEventListener('click', function() {
-        resetForm();
-    });
-
-    // Función para cargar usuarios
-    function cargarUsuarios() {
-        fetch('/api/usuarios')
-            .then(response => response.json())
-            .then(data => {
-                tableBody.innerHTML = '';
-                data.forEach(usuario => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${usuario.id}</td>
-                        <td>${usuario.nombre}</td>
-                        <td>${usuario.correo}</td>
-                        <td>
-                            <button onclick="editarUsuario(${usuario.id})">Editar</button>
-                            <button onclick="eliminarUsuario(${usuario.id})">Eliminar</button>
-                        </td>
-                    `;
-                    tableBody.appendChild(row);
-                });
-            })
-            .catch(error => console.error('Error:', error));
+    } else {
+        productoForm.reportValidity();
     }
+});
 
-    // Función para crear usuario
-    function crearUsuario(usuario) {
-        fetch('/api/usuarios', {
+// Evento para confirmar eliminación
+confirmarEliminarBtn.addEventListener('click', () => {
+    if (productoIdAEliminar) {
+        eliminarProducto(productoIdAEliminar);
+    }
+});
+
+// Función para cargar todos los productos con reintentos
+async function cargarProductos() {
+    intentosDeCarga++;
+
+    try {
+        tablaProductosBody.innerHTML = '<tr><td colspan="7" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div></td></tr>';
+
+        console.log(`Intento de carga #${intentosDeCarga}`);
+
+        const response = await fetch(API_URL);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Error HTTP ${response.status}: ${errorText}`);
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+
+        const productos = await response.json();
+
+        if (Array.isArray(productos) && productos.length > 0) {
+            mostrarProductosEnTabla(productos);
+        } else {
+            if (intentosDeCarga === 1) {
+                // Primera carga - intentar crear datos de ejemplo
+                mostrarMensaje('No hay productos en la base de datos. Creando datos de ejemplo...', 'info');
+                await crearDatosEjemplo();
+                // Volver a cargar después de crear datos
+                setTimeout(cargarProductos, 1000);
+            } else {
+                tablaProductosBody.innerHTML = '<tr><td colspan="7" class="text-center">No hay productos disponibles</td></tr>';
+            }
+        }
+    } catch (error) {
+        console.error('Error al cargar productos:', error);
+
+        if (intentosDeCarga < MAX_INTENTOS) {
+            // Reintento con retardo incremental
+            const retraso = intentosDeCarga * 1000;
+            mostrarMensaje(`Error al cargar productos. Reintentando en ${retraso/1000} segundos...`, 'warning');
+            tablaProductosBody.innerHTML = `<tr><td colspan="7" class="text-center">Reintentando conexión (${intentosDeCarga}/${MAX_INTENTOS})...</td></tr>`;
+            setTimeout(cargarProductos, retraso);
+        } else {
+            mostrarMensaje('Error al cargar productos. Por favor, verifique la conexión a la base de datos.', 'danger');
+            tablaProductosBody.innerHTML = `
+                <tr><td colspan="7" class="text-center text-danger">
+                    Error de conexión a la base de datos. 
+                    <button class="btn btn-sm btn-outline-primary mt-2" onclick="reiniciarIntentos()">Reintentar</button>
+                </td></tr>`;
+        }
+    }
+}
+
+// Función para reiniciar intentos
+function reiniciarIntentos() {
+    intentosDeCarga = 0;
+    cargarProductos();
+}
+
+// Función para crear datos de ejemplo
+async function crearDatosEjemplo() {
+    const productosEjemplo = [
+        {
+            nombre: "Laptop HP",
+            descripcion: "Laptop HP Pavilion 15.6\" con Intel Core i5",
+            precio: 12999.99,
+            cantidad: 50
+        },
+        {
+            nombre: "Monitor LG",
+            descripcion: "Monitor LG 24\" Full HD IPS",
+            precio: 3499.99,
+            cantidad: 100
+        },
+        {
+            nombre: "Mouse Inalámbrico",
+            descripcion: "Mouse inalámbrico ergonómico",
+            precio: 499.99,
+            cantidad: 75
+        }
+    ];
+
+    try {
+        for (const producto of productosEjemplo) {
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(producto)
+            });
+        }
+        mostrarMensaje('Datos de ejemplo creados exitosamente', 'success');
+    } catch (error) {
+        console.error('Error al crear datos de ejemplo:', error);
+        mostrarMensaje('Error al crear datos de ejemplo', 'danger');
+    }
+}
+
+// Función para mostrar productos en la tabla
+function mostrarProductosEnTabla(productos) {
+    tablaProductosBody.innerHTML = '';
+
+    productos.forEach(producto => {
+        const row = document.createElement('tr');
+
+        // Formatear fecha
+        const fecha = producto.fechaCreacion ? new Date(producto.fechaCreacion).toLocaleString('es-ES') : 'N/A';
+
+        row.innerHTML = `
+            <td>${producto.id}</td>
+            <td>${producto.nombre}</td>
+            <td>${producto.descripcion || '-'}</td>
+            <td>$${producto.precio.toFixed(2)}</td>
+            <td>${producto.cantidad}</td>
+            <td>${fecha}</td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-editar" data-id="${producto.id}">
+                        Editar
+                    </button>
+                    <button type="button" class="btn btn-eliminar" data-id="${producto.id}">
+                        Eliminar
+                    </button>
+                </div>
+            </td>
+        `;
+
+        tablaProductosBody.appendChild(row);
+    });
+
+    // Agregar eventos a los botones
+    document.querySelectorAll('.btn-editar').forEach(btn => {
+        btn.addEventListener('click', () => cargarProductoParaEditar(parseInt(btn.dataset.id)));
+    });
+
+    document.querySelectorAll('.btn-eliminar').forEach(btn => {
+        btn.addEventListener('click', () => mostrarConfirmacionEliminar(parseInt(btn.dataset.id)));
+    });
+}
+
+// Funciones restantes se mantienen igual...
+// (Crearlas, actualizarlas, eliminarlas, etc.)
+
+// Función para crear un nuevo producto
+async function crearProducto(producto) {
+    try {
+        const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(usuario)
-        })
-            .then(response => response.json())
-            .then(() => {
-                cargarUsuarios();
-                resetForm();
-            })
-            .catch(error => console.error('Error:', error));
-    }
+            body: JSON.stringify(producto)
+        });
 
-    // Función para actualizar usuario
-    function actualizarUsuario(id, usuario) {
-        fetch(`/api/usuarios/${id}`, {
+        if (!response.ok) {
+            const errorData = await response.text();
+            throw new Error(errorData || `Error ${response.status}: ${response.statusText}`);
+        }
+
+        const nuevoProducto = await response.json();
+        mostrarMensaje('Producto creado exitosamente', 'success');
+        resetearFormulario();
+        modal.hide();
+        reiniciarIntentos(); // Reinicia los intentos y vuelve a cargar
+
+    } catch (error) {
+        console.error('Error al crear producto:', error);
+        mostrarMensaje('Error al crear producto: ' + error.message, 'danger');
+    }
+}
+
+// Función para cargar un producto para editar
+async function cargarProductoParaEditar(id) {
+    try {
+        const response = await fetch(`${API_URL}/${id}`);
+
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+
+        const producto = await response.json();
+
+        // Llenar el formulario
+        productoId.value = producto.id;
+        nombreInput.value = producto.nombre;
+        descripcionInput.value = producto.descripcion || '';
+        precioInput.value = producto.precio;
+        cantidadInput.value = producto.cantidad;
+
+        // Cambiar título del modal
+        productoModalLabel.textContent = 'Editar Producto';
+
+        // Mostrar modal
+        modal.show();
+
+    } catch (error) {
+        console.error('Error al cargar producto para editar:', error);
+        mostrarMensaje('Error al cargar datos del producto', 'danger');
+    }
+}
+
+// Función para actualizar un producto
+async function actualizarProducto(id, producto) {
+    try {
+        const response = await fetch(`${API_URL}/${id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(usuario)
-        })
-            .then(response => response.json())
-            .then(() => {
-                cargarUsuarios();
-                resetForm();
-            })
-            .catch(error => console.error('Error:', error));
-    }
+            body: JSON.stringify(producto)
+        });
 
-    // Función para eliminar usuario
-    window.eliminarUsuario = function(id) {
-        if (confirm('¿Estás seguro de eliminar este usuario?')) {
-            fetch(`/api/usuarios/${id}`, {
-                method: 'DELETE'
-            })
-                .then(() => cargarUsuarios())
-                .catch(error => console.error('Error:', error));
+        if (!response.ok) {
+            const errorData = await response.text();
+            throw new Error(errorData || `Error ${response.status}: ${response.statusText}`);
         }
-    };
 
-    // Función para editar usuario
-    window.editarUsuario = function(id) {
-        fetch(`/api/usuarios/${id}`)
-            .then(response => response.json())
-            .then(usuario => {
-                document.getElementById('usuarioId').value = usuario.id;
-                document.getElementById('nombre').value = usuario.nombre;
-                document.getElementById('correo').value = usuario.correo;
+        mostrarMensaje('Producto actualizado exitosamente', 'success');
+        resetearFormulario();
+        modal.hide();
+        reiniciarIntentos(); // Reinicia los intentos y vuelve a cargar
 
-                editMode = true;
-                currentId = usuario.id;
-                document.getElementById('btnGuardar').textContent = 'Actualizar';
-            })
-            .catch(error => console.error('Error:', error));
-    };
-
-    // Función para resetear el formulario
-    function resetForm() {
-        form.reset();
-        document.getElementById('usuarioId').value = '';
-        editMode = false;
-        currentId = null;
-        document.getElementById('btnGuardar').textContent = 'Guardar';
+    } catch (error) {
+        console.error('Error al actualizar producto:', error);
+        mostrarMensaje('Error al actualizar producto: ' + error.message, 'danger');
     }
-});
+}
